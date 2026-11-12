@@ -1,0 +1,10 @@
+/* Minimal reset only. Real styling follows in step 7 (feature/styling-responsive). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
