@@ -8,7 +8,21 @@
 </head>
 <body>
   <h1>Flashcards</h1>
-  <main id="app"></main>
+  <main id="app">
+    <form id="add-form" novalidate>
+      <div>
+        <label for="question">Question</label>
+        <input type="text" id="question" name="question" autocomplete="off">
+      </div>
+      <div>
+        <label for="answer">Answer</label>
+        <input type="text" id="answer" name="answer" autocomplete="off">
+      </div>
+      <button type="submit">Add card</button>
+      <p id="form-error" role="alert"></p>
+    </form>
+    <section id="card-list" aria-live="polite"></section>
+  </main>
   <script src="app.js" defer></script>
 </body>
 </html>
