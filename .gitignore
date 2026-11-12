@@ -1,0 +1,13 @@
+# Secrets
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+
+# Editor and local tool settings
+.vscode/
+.claude/settings.local.json
