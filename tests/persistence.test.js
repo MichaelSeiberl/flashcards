@@ -40,7 +40,7 @@ function makeEl() {
 // opts.failSets: number of initial setItem calls that throw, then storage works.
 function loadPage(store, opts = {}) {
   const els = {};
-  for (const id of ['add-form', 'question', 'answer', 'form-error', 'storage-notice', 'card-list', 'review', 'mode-toggle']) {
+  for (const id of ['add-form', 'question', 'answer', 'form-error', 'storage-notice', 'card-list', 'review', 'review-status', 'mode-toggle']) {
     els[id] = makeEl();
   }
   let failsLeft = opts.failSets || 0;

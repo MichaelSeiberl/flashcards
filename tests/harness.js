@@ -44,7 +44,7 @@ function makeEl(tag) {
 function loadPage(store, opts = {}) {
   const doc = { focused: null, listeners: {} };
   const els = {};
-  for (const id of ['add-form', 'question', 'answer', 'form-error', 'storage-notice', 'card-list', 'review', 'mode-toggle']) {
+  for (const id of ['add-form', 'question', 'answer', 'form-error', 'storage-notice', 'card-list', 'review', 'review-status', 'mode-toggle']) {
     els[id] = makeEl(id === 'add-form' ? 'form' : id === 'mode-toggle' ? 'button' : 'div');
     els[id].ownerDoc = doc;
   }
@@ -102,10 +102,16 @@ function loadPage(store, opts = {}) {
     // review view
     reviewButtons: (action) => review.find((e) => e.tag === 'button' && e.dataset.action === action),
     clickReview: (action) => review.listeners.click({ target: page.reviewButtons(action)[0] }),
+    // focus helpers: which review control (data-focus) has focus now
+    focusedKey: () => (doc.focused && doc.focused.dataset ? doc.focused.dataset.focus : null),
+    focusReview(key) { const b = review.find((e) => e.dataset.focus === key)[0]; b.focus(); return b; },
+    reviewStatus: () => els['review-status'].textContent,
     toggleMode: () => els['mode-toggle'].listeners.click(),
-    key(key, tagName = 'BODY') {
+    // target: tag name string, or a real (fake) element such as a review button.
+    key(key, target = 'BODY') {
+      const t = typeof target === 'string' ? { tagName: target } : Object.assign(target, { tagName: target.tag.toUpperCase() });
       let prevented = false;
-      doc.listeners.keydown({ key, target: { tagName }, preventDefault() { prevented = true; } });
+      doc.listeners.keydown({ key, target: t, preventDefault() { prevented = true; } });
       return prevented;
     },
   };

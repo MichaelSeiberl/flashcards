@@ -20,6 +20,7 @@ const errorEl = document.getElementById('form-error');
 const storageNoticeEl = document.getElementById('storage-notice');
 const listEl = document.getElementById('card-list');
 const reviewEl = document.getElementById('review');
+const reviewStatusEl = document.getElementById('review-status');
 const modeToggle = document.getElementById('mode-toggle');
 const STATUS_LABELS = { learning: 'Still learning', known: 'Known' };
 
@@ -480,7 +481,13 @@ listEl.addEventListener('input', (event) => {
 });
 
 // ---- Review mode ----
-function renderReview(focusAction) {
+// Short message for screen readers. The review view itself is NOT a live
+// region (it is rebuilt on every change and would be read out completely).
+function announce(message) {
+  reviewStatusEl.textContent = message;
+}
+
+function renderReview(focusKey) {
   reviewEl.textContent = '';
 
   if (cards.length === 0) {
@@ -493,6 +500,7 @@ function renderReview(focusAction) {
   reviewEl.appendChild(make('p', 'Card ' + (reviewIndex + 1) + ' of ' + cards.length, 'review-progress'));
 
   const face = actionButton('', 'flip', undefined, 'review-card');
+  face.dataset.focus = 'face';
   face.setAttribute('aria-label', flipped ? 'Answer. Press to show the question.' : 'Question. Press to show the answer.');
   face.append(make('span', flipped ? 'Answer' : 'Question', 'review-label'));
   face.append(make('span', flipped ? card.answer : card.question, 'review-text'));
@@ -503,6 +511,7 @@ function renderReview(focusAction) {
   const prev = actionButton('Previous', 'prev');
   prev.disabled = reviewIndex === 0;
   const flip = actionButton(flipped ? 'Show question' : 'Show answer', 'flip');
+  flip.dataset.focus = 'flip';
   const next = actionButton('Next', 'next');
   next.disabled = reviewIndex === cards.length - 1;
   const nav = make('div', '', 'actions');
@@ -510,17 +519,37 @@ function renderReview(focusAction) {
   reviewEl.appendChild(nav);
 
   const marks = make('div', '', 'actions');
-  marks.append(
-    actionButton('Known', 'known', undefined, 'btn btn-primary'),
-    actionButton('Still learning', 'learning'),
-  );
+  const known = actionButton('Known', 'known', undefined, 'btn btn-primary');
+  const learning = actionButton('Still learning', 'learning');
+  marks.append(known, learning);
   reviewEl.appendChild(marks);
 
-  // Keep keyboard focus on the control that was used.
-  const focusable = { prev, next, flip };
-  if (focusAction && focusable[focusAction] && !focusable[focusAction].disabled) {
-    focusable[focusAction].focus();
+  // The view is rebuilt, so put keyboard focus back on the control that was
+  // used. A button that is now disabled (first/last card) hands the focus to
+  // the opposite navigation button, or to the flip button as a last resort.
+  prev.dataset.focus = 'prev';
+  next.dataset.focus = 'next';
+  known.dataset.focus = 'known';
+  learning.dataset.focus = 'learning';
+  const focusable = { face, prev, next, flip, known, learning };
+  const fallback = { prev: [next, flip], next: [prev, flip] };
+  if (focusKey && focusable[focusKey]) {
+    const candidates = [focusable[focusKey], ...(fallback[focusKey] || [])];
+    const target = candidates.find((el) => !el.disabled);
+    if (target) {
+      target.focus();
+    }
   }
+}
+
+// Which review control (if any) has focus; used to restore focus after render.
+function focusKeyOf(el) {
+  return (el && el.dataset && el.dataset.focus) || undefined;
+}
+
+function describeCard(prefix) {
+  const card = cards[reviewIndex];
+  return prefix + (flipped ? 'Answer: ' + card.answer : 'Question: ' + card.question);
 }
 
 function reviewStep(delta) {
@@ -539,14 +568,18 @@ reviewEl.addEventListener('click', (event) => {
   const action = button.dataset.action;
   if (action === 'flip') {
     flipped = !flipped;
-  } else if (action === 'prev') {
-    reviewStep(-1);
-  } else if (action === 'next') {
-    reviewStep(1);
+  } else if (action === 'prev' || action === 'next') {
+    const before = reviewIndex;
+    reviewStep(action === 'next' ? 1 : -1);
+    if (reviewIndex !== before) {
+      announce(describeCard('Card ' + (reviewIndex + 1) + ' of ' + cards.length + '. '));
+    }
   } else if (action === 'known' || action === 'learning') {
-    changeStatus(cards[reviewIndex].id, action);
+    if (changeStatus(cards[reviewIndex].id, action) === 'ok') {
+      announce(action === 'known' ? 'Marked as known.' : 'Marked as still learning.');
+    }
   }
-  render(action);
+  render(focusKeyOf(button));
 });
 
 // Space flips the card, arrow keys navigate. Not while typing, and not on a
@@ -560,13 +593,15 @@ document.addEventListener('keydown', (event) => {
   if ((event.key === ' ' || event.key === 'Spacebar') && !typing && tag !== 'BUTTON' && tag !== 'A') {
     event.preventDefault();
     flipped = !flipped;
+    announce(describeCard(''));
     render();
-  } else if (!typing && event.key === 'ArrowRight') {
-    reviewStep(1);
-    render();
-  } else if (!typing && event.key === 'ArrowLeft') {
-    reviewStep(-1);
-    render();
+  } else if (!typing && (event.key === 'ArrowRight' || event.key === 'ArrowLeft')) {
+    const before = reviewIndex;
+    reviewStep(event.key === 'ArrowRight' ? 1 : -1);
+    if (reviewIndex !== before) {
+      announce(describeCard('Card ' + (reviewIndex + 1) + ' of ' + cards.length + '. '));
+    }
+    render(focusKeyOf(event.target));
   }
 });
 
@@ -583,6 +618,7 @@ function setMode(next) {
     flipped = false;
   }
   mode = next;
+  announce('');
   render();
 }
 

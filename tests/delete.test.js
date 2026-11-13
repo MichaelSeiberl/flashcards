@@ -37,7 +37,7 @@ function makeEl() {
 // opts.getThrows, opts.setThrows (true or key), opts.confirm (default true)
 function loadPage(store, opts = {}) {
   const els = {};
-  for (const id of ['add-form', 'question', 'answer', 'form-error', 'storage-notice', 'card-list', 'review', 'mode-toggle']) els[id] = makeEl();
+  for (const id of ['add-form', 'question', 'answer', 'form-error', 'storage-notice', 'card-list', 'review', 'review-status', 'mode-toggle']) els[id] = makeEl();
   let confirmAnswer = opts.confirm !== false;
   const confirms = [];
   const localStorage = {
