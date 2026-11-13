@@ -1,16 +1,248 @@
-/* Minimal reset only. Real styling follows in step 7 (feature/styling-responsive). */
+/* Responsive styling (step 7): mobile first, wider layout from 40em. */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
-body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+:root {
+  --text: #1a1a1a;
+  --muted: #4b5563;
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --border: #c9ced6;
+  --primary: #1d4ed8;
+  --danger: #b91c1c;
+  --error: #b91c1c;
+  --known-bg: #dcfce7;
+  --known-text: #14532d;
+  --learning-bg: #fef9c3;
+  --learning-text: #713f12;
 }
 
-/* Minimal delete button; full styling follows in step 7. */
-#card-list button {
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  padding: 1rem;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: 1.75rem;
+}
+
+#app {
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+/* Long words and URLs must never push the page wider than the screen. */
+p,
+li,
+label,
+.review-text {
+  overflow-wrap: anywhere;
+}
+
+/* ---- Forms ---- */
+form {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+label {
+  display: block;
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+
+input[type="text"] {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.75rem;
+  font: inherit; /* 16px: avoids zoom-in on phones */
+  color: var(--text);
+  background: #fff;
+  border: 1px solid #6b7280;
+  border-radius: 0.375rem;
+}
+
+/* ---- Buttons ---- */
+.btn {
+  min-height: 2.75rem; /* about 44px: easy to tap */
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid #6b7280;
+  border-radius: 0.375rem;
   cursor: pointer;
-  padding: 0.25rem 0.75rem;
+}
+
+.btn-primary {
+  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn:disabled {
+  color: #6b7280;
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible,
+input:focus-visible,
+.review-card:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+#mode-toggle {
+  width: 100%;
+}
+
+/* ---- Messages ---- */
+.form-error,
+#form-error {
+  min-height: 1.5rem;
+  margin: 0 0 0.5rem;
+  color: var(--error);
+  font-weight: 600;
+}
+
+#storage-notice:not(:empty) {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  color: #7c2d12;
+  background: #ffedd5;
+  border: 1px solid #fdba74;
+  border-radius: 0.5rem;
+}
+
+/* ---- Card list ---- */
+.card-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card-item {
+  margin: 0 0 0.75rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.card-item p {
+  margin: 0 0 0.5rem;
+}
+
+.card-item form {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.status {
+  display: inline-block;
+  margin: 0;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+.status-known {
+  color: var(--known-text);
+  background: var(--known-bg);
+}
+
+.status-learning {
+  color: var(--learning-text);
+  background: var(--learning-bg);
+}
+
+/* ---- Review mode ---- */
+.review-progress {
+  margin: 1rem 0 0.5rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.review-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 10rem;
+  margin: 0 0 0.75rem;
+  padding: 1.25rem;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  border-radius: 0.75rem;
+  cursor: pointer;
+}
+
+.review-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.review-text {
+  font-size: 1.375rem;
+}
+
+/* ---- Wider screens ---- */
+@media (min-width: 40em) {
+  body {
+    padding: 2rem;
+  }
+
+  #mode-toggle {
+    width: auto;
+  }
+
+  .review-card {
+    min-height: 14rem;
+  }
+
+  .review-text {
+    font-size: 1.75rem;
+  }
 }

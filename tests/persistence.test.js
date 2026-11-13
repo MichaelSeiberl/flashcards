@@ -40,7 +40,7 @@ function makeEl() {
 // opts.failSets: number of initial setItem calls that throw, then storage works.
 function loadPage(store, opts = {}) {
   const els = {};
-  for (const id of ['add-form', 'question', 'answer', 'form-error', 'storage-notice', 'card-list']) {
+  for (const id of ['add-form', 'question', 'answer', 'form-error', 'storage-notice', 'card-list', 'review', 'mode-toggle']) {
     els[id] = makeEl();
   }
   let failsLeft = opts.failSets || 0;
@@ -62,7 +62,7 @@ function loadPage(store, opts = {}) {
   };
   const sandbox = {
     localStorage,
-    document: { getElementById: (id) => els[id], createElement: () => makeEl() },
+    document: { addEventListener() {}, getElementById: (id) => els[id], createElement: () => makeEl() },
   };
   vm.createContext(sandbox);
   // `let` variables of app.js are exposed through a getter appended to the script.
