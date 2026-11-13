@@ -23,6 +23,11 @@ const listEl = document.getElementById('card-list');
 let loadNotice = '';
 let saveNotice = '';
 
+// True when existing stored data could not be read or backed up reliably.
+// Then nothing may be written to STORAGE_KEY (it could destroy that data).
+// Only in memory: a reload tries again.
+let savingBlocked = false;
+
 function renderNotice() {
   storageNoticeEl.textContent = [loadNotice, saveNotice].filter(Boolean).join(' ');
 }
@@ -32,7 +37,7 @@ function isValidCard(c) {
   return (
     c !== null &&
     typeof c === 'object' &&
-    Number.isInteger(c.id) && c.id > 0 &&
+    Number.isSafeInteger(c.id) && c.id > 0 &&
     typeof c.question === 'string' && c.question.trim() !== '' &&
     typeof c.answer === 'string' && c.answer.trim() !== '' &&
     VALID_STATUSES.includes(c.status)
@@ -50,16 +55,21 @@ function backupRaw(raw) {
 }
 
 // Reads cards from localStorage. Never throws.
-// Returns { cards, notice }. Loading never overwrites STORAGE_KEY.
+// Returns { cards, notice, blocked }. Loading never overwrites STORAGE_KEY.
+// blocked = true: existing data is unknown or unsaved, so saving must stay off.
 function loadCards() {
   let raw;
   try {
     raw = localStorage.getItem(STORAGE_KEY);
   } catch (e) {
-    return { cards: [], notice: 'Saving is not available in this browser.' };
+    return {
+      cards: [],
+      blocked: true,
+      notice: 'Saved cards could not be read. Saving is turned off so existing data is not overwritten. Reload the page to try again.',
+    };
   }
   if (raw === null) {
-    return { cards: [], notice: '' };
+    return { cards: [], notice: '', blocked: false };
   }
 
   let parsed;
@@ -92,18 +102,30 @@ function loadCards() {
   }
 
   if (!discarded) {
-    return { cards: valid, notice: '' };
+    return { cards: valid, notice: '', blocked: false };
   }
 
-  let notice = 'Some saved cards were invalid and were skipped. A backup of the original data was kept.';
-  if (!backupRaw(raw)) {
-    notice = 'Some saved cards were invalid and were skipped, but the backup could not be saved.';
+  if (backupRaw(raw)) {
+    return {
+      cards: valid,
+      blocked: false,
+      notice: 'Some saved cards were invalid and were skipped. A backup of the original data was kept.',
+    };
   }
-  return { cards: valid, notice };
+  // No backup: the next save would destroy the only copy of the original data.
+  return {
+    cards: valid,
+    blocked: true,
+    notice: 'Some saved cards were invalid and the backup could not be saved. Saving is turned off so the original data is not overwritten.',
+  };
 }
 
 // Writes the list to localStorage. Returns true on success, false on failure.
+// Single write path to STORAGE_KEY; refuses while saving is blocked.
 function saveCards(list) {
+  if (savingBlocked) {
+    return false;
+  }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     return true;
@@ -115,10 +137,12 @@ function saveCards(list) {
 const loaded = loadCards();
 let cards = loaded.cards;
 loadNotice = loaded.notice;
+savingBlocked = loaded.blocked;
 // Next id = highest existing id + 1 (1 if the deck is empty).
 let nextId = cards.reduce((max, c) => Math.max(max, c.id), 0) + 1;
 
-// Validates and adds a card. Returns 'ok', 'invalid' or 'save-failed'.
+// Validates and adds a card.
+// Returns 'ok', 'invalid', 'blocked', 'id-limit' or 'save-failed'.
 // Validation lives here (not only in HTML attributes, which can be bypassed).
 // Rollback: state changes only after the save succeeded.
 function addCard(question, answer) {
@@ -126,6 +150,12 @@ function addCard(question, answer) {
   const a = answer.trim();
   if (q === '' || a === '') {
     return 'invalid';
+  }
+  if (savingBlocked) {
+    return 'blocked';
+  }
+  if (!Number.isSafeInteger(nextId)) {
+    return 'id-limit'; // ids beyond 2^53-1 are no longer unique
   }
   const newList = [...cards, { id: nextId, question: q, answer: a, status: 'learning' }];
   if (!saveCards(newList)) {
@@ -173,10 +203,15 @@ form.addEventListener('submit', (event) => {
 
   const result = addCard(questionInput.value, answerInput.value);
 
-  if (result === 'save-failed') {
+  const failureNotices = {
+    'save-failed': 'Could not save the card. Nothing was added. Your browser may block storage or be out of space.',
+    'blocked': 'Nothing was added because saving is turned off (see the message above).',
+    'id-limit': 'No more card IDs available. Nothing was added.',
+  };
+  if (result in failureNotices) {
     // Nothing was added; keep the form content so the input is not lost.
     errorEl.textContent = '';
-    saveNotice = 'Could not save the card. Nothing was added. Your browser may block storage or be out of space.';
+    saveNotice = failureNotices[result];
     renderNotice();
     return;
   }
