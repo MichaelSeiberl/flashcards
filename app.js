@@ -166,6 +166,23 @@ function addCard(question, answer) {
   return 'ok';
 }
 
+// Deletes the card with the given id. Returns 'ok', 'not-found', 'blocked' or 'save-failed'.
+// Same rollback rule as addCard: state changes only after the save succeeded.
+function deleteCard(id) {
+  if (!cards.some((c) => c.id === id)) {
+    return 'not-found';
+  }
+  if (savingBlocked) {
+    return 'blocked';
+  }
+  const newList = cards.filter((c) => c.id !== id);
+  if (!saveCards(newList)) {
+    return 'save-failed';
+  }
+  cards = newList;
+  return 'ok';
+}
+
 // Central render function: draws the card list or the empty state.
 // User text is set via textContent only (never innerHTML) to avoid XSS.
 function render() {
@@ -192,11 +209,45 @@ function render() {
     aLabel.textContent = 'A: ';
     a.append(aLabel, card.answer);
 
-    li.append(q, a);
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.textContent = 'Delete';
+    del.dataset.id = String(card.id);
+    del.setAttribute('aria-label', 'Delete card: ' + card.question);
+
+    li.append(q, a, del);
     ul.appendChild(li);
   }
   listEl.appendChild(ul);
 }
+
+// One listener for all delete buttons (event delegation).
+listEl.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-id]');
+  if (!button) {
+    return;
+  }
+  const id = Number(button.dataset.id);
+  const card = cards.find((c) => c.id === id);
+  if (!card) {
+    return;
+  }
+  if (!window.confirm('Delete this card?\n\nQ: ' + card.question)) {
+    return; // cancelled: nothing changes
+  }
+  const result = deleteCard(id);
+  if (result === 'ok') {
+    saveNotice = '';
+    renderNotice();
+    render();
+  } else if (result === 'blocked') {
+    saveNotice = 'Nothing was deleted because saving is turned off (see the message above).';
+    renderNotice();
+  } else if (result === 'save-failed') {
+    saveNotice = 'Could not save. Nothing was deleted. Your browser may block storage or be out of space.';
+    renderNotice();
+  }
+});
 
 form.addEventListener('submit', (event) => {
   event.preventDefault(); // stay on the page, no reload
