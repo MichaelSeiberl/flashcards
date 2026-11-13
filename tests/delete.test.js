@@ -37,7 +37,7 @@ function makeEl() {
 // opts.getThrows, opts.setThrows (true or key), opts.confirm (default true)
 function loadPage(store, opts = {}) {
   const els = {};
-  for (const id of ['add-form', 'question', 'answer', 'form-error', 'storage-notice', 'card-list']) els[id] = makeEl();
+  for (const id of ['add-form', 'question', 'answer', 'form-error', 'storage-notice', 'card-list', 'review', 'review-status', 'mode-toggle']) els[id] = makeEl();
   let confirmAnswer = opts.confirm !== false;
   const confirms = [];
   const localStorage = {
@@ -53,11 +53,11 @@ function loadPage(store, opts = {}) {
   const sandbox = {
     localStorage,
     window: { confirm: (msg) => { confirms.push(msg); return confirmAnswer; } },
-    document: { getElementById: (id) => els[id], createElement: (tag) => { const e = makeEl(); e.tag = tag; return e; } },
+    document: { addEventListener() {}, getElementById: (id) => els[id], createElement: (tag) => { const e = makeEl(); e.tag = tag; return e; } },
   };
   vm.createContext(sandbox);
   vm.runInContext(SRC + '\n;this.__state = () => ({ cards, nextId });', sandbox);
-  const buttons = () => els['card-list'].find((e) => e.tag === 'button');
+  const buttons = () => els['card-list'].find((e) => e.tag === 'button' && e.dataset.action === 'delete');
   return {
     els, confirms, buttons,
     setConfirm: (v) => { confirmAnswer = v; },
@@ -115,7 +115,7 @@ test('D5 unknown id: no confirm, no change, nothing written [simulated]', () => 
   const before = JSON.stringify(store);
   const p = loadPage(store);
   for (const id of ['99', 'abc', '']) {
-    const fake = makeEl(); fake.tag = 'button'; fake.dataset.id = id;
+    const fake = makeEl(); fake.tag = 'button'; fake.dataset.id = id; fake.dataset.action = 'delete';
     p.click(fake);
   }
   p.click(makeEl()); // click that is not on a delete button

@@ -9,6 +9,7 @@
 <body>
   <h1>Flashcards</h1>
   <main id="app">
+    <button type="button" id="mode-toggle" class="btn">Start review</button>
     <form id="add-form" novalidate>
       <div>
         <label for="question">Question</label>
@@ -18,11 +19,13 @@
         <label for="answer">Answer</label>
         <input type="text" id="answer" name="answer" autocomplete="off">
       </div>
-      <button type="submit">Add card</button>
+      <button type="submit" class="btn btn-primary">Add card</button>
       <p id="form-error" role="alert"></p>
     </form>
     <p id="storage-notice" role="status"></p>
     <section id="card-list" aria-live="polite"></section>
+    <section id="review" hidden></section>
+    <p id="review-status" class="visually-hidden" role="status" aria-live="polite"></p>
   </main>
   <script src="app.js" defer></script>
 </body>
