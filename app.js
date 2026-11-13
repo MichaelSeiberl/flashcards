@@ -519,8 +519,17 @@ function renderReview(focusKey) {
   reviewEl.appendChild(nav);
 
   const marks = make('div', '', 'actions');
-  const known = actionButton('Known', 'known', undefined, 'btn btn-primary');
-  const learning = actionButton('Still learning', 'learning');
+  // Neutral by default; the stored status is highlighted (colour + check mark
+  // + aria-pressed, so it is not conveyed by colour alone).
+  const known = actionButton('Known', 'known', undefined, 'btn status-btn status-btn-known');
+  const learning = actionButton('Still learning', 'learning', undefined, 'btn status-btn status-btn-learning');
+  for (const [btn, key] of [[known, 'known'], [learning, 'learning']]) {
+    const active = card.status === key;
+    btn.setAttribute('aria-pressed', String(active));
+    if (active) {
+      btn.className += ' is-active';
+    }
+  }
   marks.append(known, learning);
   reviewEl.appendChild(marks);
 

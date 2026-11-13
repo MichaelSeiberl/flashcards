@@ -16,8 +16,10 @@
   --error: #b91c1c;
   --known-bg: #dcfce7;
   --known-text: #14532d;
-  --learning-bg: #fef9c3;
-  --learning-text: #713f12;
+  --learning-bg: #fee2e2;
+  --learning-text: #7f1d1d;
+  --known-strong: #166534;
+  --learning-strong: #b91c1c;
 }
 
 [hidden] {
@@ -188,6 +190,25 @@ input:focus-visible,
 .status-learning {
   color: var(--learning-text);
   background: var(--learning-bg);
+}
+
+/* Review status buttons: neutral until they match the stored status. */
+.status-btn.is-active {
+  color: #fff;
+  border-color: transparent;
+}
+
+.status-btn.is-active::before {
+  content: "\2713\00a0"; /* check mark: status is not shown by colour alone */
+  content: "\2713\00a0" / "";
+}
+
+.status-btn-known.is-active {
+  background: var(--known-strong);
+}
+
+.status-btn-learning.is-active {
+  background: var(--learning-strong);
 }
 
 /* ---- Review mode ---- */

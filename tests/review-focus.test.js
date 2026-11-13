@@ -93,3 +93,17 @@ test('A3 no announcement when nothing changes (boundary) and cleared on leaving 
   p.toggleMode();
   assert.strictEqual(p.reviewStatus(), '');
 });
+
+test('V1 review status buttons: only the stored status is pressed/active, follows changes [simulated]', () => {
+  const p = loadPage(deck(card(1, 'one', 'known'), card(2, 'two', 'learning')));
+  p.toggleMode();
+  const st = () => ['known', 'learning'].map((k) => {
+    const b = p.reviewButtons(k)[0];
+    return b.attrs['aria-pressed'] + ':' + b.className.includes('is-active');
+  });
+  assert.deepStrictEqual(st(), ['true:true', 'false:false']);
+  p.clickReview('next');
+  assert.deepStrictEqual(st(), ['false:false', 'true:true']);
+  p.clickReview('known');
+  assert.deepStrictEqual(st(), ['true:true', 'false:false']);
+});
