@@ -5,27 +5,135 @@
  *   { id, question, answer, status }
  *   status: 'learning' (UI: "Still learning") | 'known' (UI: "Known")
  *
- * Step 1: in-memory only. Persistence (localStorage) is added in step 2.
+ * Step 2: cards are persisted in localStorage (see loadCards / saveCards).
  */
-let cards = [];
-let nextId = 1;
+const STORAGE_KEY = 'flashcards:v1';
+const BACKUP_KEY = 'flashcards:v1:backup';
+const VALID_STATUSES = ['learning', 'known'];
 
 const form = document.getElementById('add-form');
 const questionInput = document.getElementById('question');
 const answerInput = document.getElementById('answer');
 const errorEl = document.getElementById('form-error');
+const storageNoticeEl = document.getElementById('storage-notice');
 const listEl = document.getElementById('card-list');
 
-// Validates and adds a card. Returns true on success, false if input is invalid.
+// Two notice sources: the load notice stays until reload, the save notice
+// disappears after the next successful save.
+let loadNotice = '';
+let saveNotice = '';
+
+function renderNotice() {
+  storageNoticeEl.textContent = [loadNotice, saveNotice].filter(Boolean).join(' ');
+}
+
+// True if the value is a well-formed card.
+function isValidCard(c) {
+  return (
+    c !== null &&
+    typeof c === 'object' &&
+    Number.isInteger(c.id) && c.id > 0 &&
+    typeof c.question === 'string' && c.question.trim() !== '' &&
+    typeof c.answer === 'string' && c.answer.trim() !== '' &&
+    VALID_STATUSES.includes(c.status)
+  );
+}
+
+// Copies the raw stored value to the backup key. Returns true on success.
+function backupRaw(raw) {
+  try {
+    localStorage.setItem(BACKUP_KEY, raw);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Reads cards from localStorage. Never throws.
+// Returns { cards, notice }. Loading never overwrites STORAGE_KEY.
+function loadCards() {
+  let raw;
+  try {
+    raw = localStorage.getItem(STORAGE_KEY);
+  } catch (e) {
+    return { cards: [], notice: 'Saving is not available in this browser.' };
+  }
+  if (raw === null) {
+    return { cards: [], notice: '' };
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    parsed = null;
+  }
+
+  const valid = [];
+  let discarded = false;
+  if (!Array.isArray(parsed)) {
+    discarded = true;
+  } else {
+    const seenIds = new Set();
+    for (const item of parsed) {
+      if (isValidCard(item) && !seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        // Keep only known fields, trimmed like in addCard.
+        valid.push({
+          id: item.id,
+          question: item.question.trim(),
+          answer: item.answer.trim(),
+          status: item.status,
+        });
+      } else {
+        discarded = true;
+      }
+    }
+  }
+
+  if (!discarded) {
+    return { cards: valid, notice: '' };
+  }
+
+  let notice = 'Some saved cards were invalid and were skipped. A backup of the original data was kept.';
+  if (!backupRaw(raw)) {
+    notice = 'Some saved cards were invalid and were skipped, but the backup could not be saved.';
+  }
+  return { cards: valid, notice };
+}
+
+// Writes the list to localStorage. Returns true on success, false on failure.
+function saveCards(list) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+const loaded = loadCards();
+let cards = loaded.cards;
+loadNotice = loaded.notice;
+// Next id = highest existing id + 1 (1 if the deck is empty).
+let nextId = cards.reduce((max, c) => Math.max(max, c.id), 0) + 1;
+
+// Validates and adds a card. Returns 'ok', 'invalid' or 'save-failed'.
 // Validation lives here (not only in HTML attributes, which can be bypassed).
+// Rollback: state changes only after the save succeeded.
 function addCard(question, answer) {
   const q = question.trim();
   const a = answer.trim();
   if (q === '' || a === '') {
-    return false;
+    return 'invalid';
   }
-  cards.push({ id: nextId++, question: q, answer: a, status: 'learning' });
-  return true;
+  const newList = [...cards, { id: nextId, question: q, answer: a, status: 'learning' }];
+  if (!saveCards(newList)) {
+    return 'save-failed';
+  }
+  cards = newList;
+  nextId++;
+  return 'ok';
 }
 
 // Central render function: draws the card list or the empty state.
@@ -63,9 +171,17 @@ function render() {
 form.addEventListener('submit', (event) => {
   event.preventDefault(); // stay on the page, no reload
 
-  const ok = addCard(questionInput.value, answerInput.value);
+  const result = addCard(questionInput.value, answerInput.value);
 
-  if (!ok) {
+  if (result === 'save-failed') {
+    // Nothing was added; keep the form content so the input is not lost.
+    errorEl.textContent = '';
+    saveNotice = 'Could not save the card. Nothing was added. Your browser may block storage or be out of space.';
+    renderNotice();
+    return;
+  }
+
+  if (result === 'invalid') {
     errorEl.textContent = 'Please enter a question and an answer.';
     // Focus the first field that is empty (after trimming).
     if (questionInput.value.trim() === '') {
@@ -77,10 +193,13 @@ form.addEventListener('submit', (event) => {
   }
 
   errorEl.textContent = '';
+  saveNotice = '';
+  renderNotice();
   questionInput.value = '';
   answerInput.value = '';
   questionInput.focus();
   render();
 });
 
+renderNotice();
 render();
