@@ -19,6 +19,8 @@ function makeEl() {
     children: [],
     value: '',
     listeners: {},
+    dataset: {}, // step 3: delete buttons use data-id and aria-label
+    setAttribute() {},
     get textContent() { return text; },
     set textContent(v) { text = v; this.children = []; },
     focus() {},

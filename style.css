@@ -8,3 +8,9 @@
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
+
+/* Minimal delete button; full styling follows in step 7. */
+#card-list button {
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+}
